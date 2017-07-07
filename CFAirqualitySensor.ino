@@ -195,7 +195,7 @@ void loop(void) {
         // Serial.print("captured number is: ");  // we already displayed it.
          Serial.println(captured_number);
          end_cap_time_ms = millis();
-        } while((end_cap_time_ms - start_cap_time_ms)< 120000); //600000 Have we done 10 minutes of data capture? if yes, try transmiting data and hold on.
+        } while((end_cap_time_ms - start_cap_time_ms)< 120000); //appx 600000 Have we done 10 minutes of data capture? if yes, try transmiting data and hold on.
 //        Serial.println(end_cap_time_ms - start_cap_time_ms);
         
         do{ //Between here, prepare the URL and assign all values and try to send data to the server until you are sucessful. if not save, we can save 30.
@@ -227,8 +227,9 @@ void loop(void) {
         u += random(1, 10);
         u += "&p1=8&s=1&lo=3&l=7&h=5&t=2&b=1&tm=3&hu=4&dn=1&di=900";*/
           //compose string.
-
+        /*
         String u= "airquality.codefornigeria.org/input_sensor_data/?d=1"; // this is the url for the first sensor and the d=1
+         //String u= "cfaairquality.pythonanywhere.com/input_sensor_data/?d=1"; // this is the url for the first sensor and the d=1
          u +="&c=";
          u +=map (map(real_time_average_co, 0.1, 1023.1, 10.1, 500.1), 10.0,500.0, 0.0,50.4); 
          u +="&o3=";
@@ -259,7 +260,10 @@ void loop(void) {
          u +=dn;
          u +="&di=";
          u +=900; // our data interval is 900 secs. 
-        
+        */
+        //Sample test to see if data will go through.
+        String url = "api.airquality.codeforafrica.org/v1/push-sensor-data/?NODE=CFA001&PIN=2";
+        String data = "{\”sampling_rate\”:2,\”timestamp\”:\”2017-6-6 2:7:1\”,\”sensordatavalues\”:[{\”value\”:\”9\”,\”value_type\”:\”P1\”},{\”value\”:\”1\”,\”value_type\”:\”P2\”},{\”value\”:\”4\”,\”value_type\”:\”samples\”},{\”value\”:\”1\”,\”value_type\”:\”min_micro\”},{\”value\”:\”2\”,\”value_type\”:\”max_micro\”}]}";
         /**********************BETWEEN HERE SEND DATA TO THE SERVER/DATABASE***********************/
             //  Serial.println(u);
               unsigned long time_started = millis();
@@ -273,7 +277,7 @@ void loop(void) {
                   Serial.println(F("GRfai")); 
                 }
               webstatus=5; // let us know the web status
-              webresult = send_data_to_web ('w', u);
+              webresult = send_data_to_web ('w', url, data);
               if (webresult==1){
                  Serial.println("Web suc");
               //tunr off
@@ -572,7 +576,7 @@ int send_GPS_RS_command_GgOo (char command) {
 }
 
 // function to send data to web.
-int send_data_to_web (char command, String url) {
+int send_data_to_web (char command, String url, String data) {
      delay(5000);
     Serial.print(F("FONA> "));
     flushSerial();
@@ -582,47 +586,46 @@ int send_data_to_web (char command, String url) {
     int failed =1;
     switch (command){
     
-    case 'w': {
-    uint16_t statuscode;
-    int16_t length;
-    int16_t length2;
-    //char h [400]={' '}; //hold Httpresponse, i dont expect to have more than 500 for this application.
-   // String HttpResponseData="";
-    char buf[url.length()+1]; //Increase this length to accomodate for large or long dataset.
-    url.toCharArray(buf, url.length()+1); // maximum length of GET request is 2000
-   // Serial.print("Request: ");
-    Serial.println(buf);
+    case 'W': {
+        // Post data to website
+        uint16_t statuscode;
+        int16_t length;
+        char url[100];
+        char data[500];
 
-    if (!fona.HTTP_GET_start(buf, &statuscode, (uint16_t *)&length)) {
-     failed =0;
-      //  statuscode, length =0;
-     //  If it fails, Wait a certain time, reintialize device, turn off gprs if on, then try again.
-    }
-    length2 = length;
-    while (length > 0) {
-    while (fona.available()) {
-    char c = fona.read();
-     // Serial.write is too slow, we'll write directly to Serial register!
-      #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
-        loop_until_bit_is_set(UCSR0A, UDRE0); /* Wait until data register empty. */
-        UDR0 = c;
-      #else
-        Serial.write(c);
-      #endif
-//      length--;
-   //   h[length2-length]=c ;// load the response data into a string where it can be processed
-      length--;
-      
-    }
-  }
-  if ( failed == 0){ // if failed occured, and showed error 603, due to network, then relax for Fona GPRS to get it self together again. because when it is on, it actually does not turn off, i dont know why
-  Serial.print ("I fail ");
-  }
-  // if 603 occurs, it does this fona.HTTP_GET_END command immdeiately, which makes things work wrong, there should be a delay between the HTTP get_start command and HTTP_get_end command, when things fail.
-  webstatus = statuscode; // let us know the stauts code.
-  delay(8000);
-  fona.HTTP_GET_end();
-  }
+        flushSerial();
+        Serial.println(F("p"));
+    //    Serial.println(F("U"));
+    //    Serial.print(F("http://")); readline(url, 99);
+        Serial.println(url);
+        Serial.println(F("u"));
+        readline(data, 499);
+        Serial.println(data);
+
+        Serial.println(F("**"));
+        if (!fona.HTTP_POST_start(url, F("application/json"), (uint8_t *) data, strlen(data), &statuscode, (uint16_t *)&length)) {
+        failed = 0;
+          break;
+        }
+        while (length > 0) {
+          while (fona.available()) {
+            char c = fona.read();
+
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
+            loop_until_bit_is_set(UCSR0A, UDRE0); /* Wait until data register empty. */
+            UDR0 = c;
+#else
+            Serial.write(c);
+#endif
+
+            length--;
+            if (! length) break;
+          }
+        }
+        Serial.println(F("\n****"));
+        fona.HTTP_POST_end();
+        break;
+      }
 
     }
   flushSerial();
@@ -645,5 +648,42 @@ if (!fona.enableGPS(false)){
 delay(5000);
   return 1;
 }
+uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout) {
+  uint16_t buffidx = 0;
+  boolean timeoutvalid = true;
+  if (timeout == 0) timeoutvalid = false;
 
+  while (true) {
+    if (buffidx > maxbuff) {
+      //Serial.println(F("SPACE"));
+      break;
+    }
+
+    while (Serial.available()) {
+      char c =  Serial.read();
+
+      //Serial.print(c, HEX); Serial.print("#"); Serial.println(c);
+
+      if (c == '\r') continue;
+      if (c == 0xA) {
+        if (buffidx == 0)   // the first 0x0A is ignored
+          continue;
+
+        timeout = 0;         // the second 0x0A is the end of the line
+        timeoutvalid = true;
+        break;
+      }
+      buff[buffidx] = c;
+      buffidx++;
+    }
+
+    if (timeoutvalid && timeout == 0) {
+      //Serial.println(F("TIMEOUT"));
+      break;
+    }
+    delay(1);
+  }
+  buff[buffidx] = 0;  // null term
+  return buffidx;
+}
 
