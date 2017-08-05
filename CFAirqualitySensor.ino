@@ -5,12 +5,11 @@
 
 //Fona setup
 #include "Adafruit_FONA.h"
-#include <EEPROM.h>
 #define FONA_RX 2
 #define FONA_TX 3
 #define FONA_RST 4
 // this is a large buffer for replies
-char replybuffer[255];
+//char replybuffer[255];
 // We default to using software serial. If you want to use hardware serial
 // (because softserial isnt supported) comment out the following three lines 
 // and uncomment the HardwareSerial line
@@ -62,23 +61,22 @@ int next_state =34 ; // keep the state of things
 
 
 //constant Web data for setting
-String sn ="lembor";//sensor name
-String sc = "";//sensor city
+//String sn ="r";//sensor name
+//String sc = "";//sensor city
 int si= 1; //sensor installed.
-String se=""; //in care of
-String so= "";//organisation in care of
-String sp= "";//phone no
-String va=""; //pollutant variable
-String st=""; //country
+//String se=""; //in care of
+//String so= "";//organisation in care of
+//String sp= "";//phone no
+//String va=""; //pollutant variable
+//String st=""; //country
 //float l= //longitude
 //float a= //latitude
 //float h= //height
 //int v= //data interval
-String r=""; // sensor owner.
+//String r=""; // sensor owner.
 int register_indicator = 0;
 float latitude, longitude, altitude; // to hold longitude and latitue
-
-
+String g = "codeforafrica";
 //chaning Web variables
 int dn=0; // data_no
 int d=1; // the identity of sensor, so this is first sensor, we should find a way to send it, its unqiue for all sensor.
@@ -96,6 +94,10 @@ int b = 0;// battery status
 float tm = 0;// temperature data
 float hu= 0; //hummidity data
 float di= 900; //data interval
+int d1=0; //low pulseoccupancyPM10
+int d2=0; //low pulseoccupancyPM2.5
+float r1=0;//ratioPM10
+float r2=0;//ratioPM2.5
 
 //PM data and variables
 #define DUST_SENSOR_DIGITAL_PIN_PM10  8
@@ -153,6 +155,10 @@ void loop(void) {
         real_time_average_co=1;
         real_time_average_tem=1;
         real_time_average_hum=1;
+        d1=1; //lowpulseoccupanccyPM10
+        d2=1; //lowpulseoccupanccyPM2.5
+        r1=1; //RatioPM10
+        r2=1; //RatioPM2.5
     
     // Capture data every 1 mins and send average of captured pollutant data every 15 mins, then capture over a 24 hr period i.e 96 times
       for (int i =1; i<=96; i++){ 
@@ -186,19 +192,20 @@ void loop(void) {
           break;
          
           default: //captured_number--; //next_state = clean_all_data (next_state, captured_number); // Check for echicle entrace // reduce captured number when last as being cpatured because it will be increased
-          Serial.println("entered default state");
+        ///  Serial.println("entered default state");
           next_state=1;
           break;
         
         }//end of swicth
          //calculate realtime average.
         // Serial.print("captured number is: ");  // we already displayed it.
-         Serial.println(captured_number);
+       ///  Serial.println(captured_number);
          end_cap_time_ms = millis();
-        } while((end_cap_time_ms - start_cap_time_ms)< 120000); //appx 600000 Have we done 10 minutes of data capture? if yes, try transmiting data and hold on.
+        } while((end_cap_time_ms - start_cap_time_ms)< 60000); //appx 600000 Have we done 10 minutes of data capture? if yes, try transmiting data and hold on.
 //        Serial.println(end_cap_time_ms - start_cap_time_ms);
-        
+        int q= 1; //checker to enable us to send data to both codeforafrica and codefornigeria.
         do{ //Between here, prepare the URL and assign all values and try to send data to the server until you are sucessful. if not save, we can save 30.
+        
                /*  Serial.println("report of captures");
                  Serial.print("average pm25 is: "); 
                  Serial.println(real_time_average_pm25);
@@ -215,7 +222,7 @@ void loop(void) {
         //get GPS, latitutude, longitude, height, 
         static char outstr[10]; //hold the str that allow us to render longitude data properly.
         if (!get_long_lat_alt ()){ // if the gps fails // get the last correct gps from eeprom.
-            Serial.println("gpsf");
+           /// Serial.println("gpsf");
              }
         /*String u ="airquality.codefornigeria.org/input_sensor_data/?d=1&c=1&o3=41&n=1"; // the way URL should be added.
           u += "&p2=";
@@ -227,43 +234,52 @@ void loop(void) {
         u += random(1, 10);
         u += "&p1=8&s=1&lo=3&l=7&h=5&t=2&b=1&tm=3&hu=4&dn=1&di=900";*/
           //compose string.
-        /*
-        String u= "airquality.codefornigeria.org/input_sensor_data/?d=1"; // this is the url for the first sensor and the d=1
+        do // allow us to use the single command to update both codeforafrica and codefornigeria
+        {
+          String u="ng.api.airquality."+ g +".org/?NODE=CFA004"; // this is the url for the first sensor and the d=1
          //String u= "cfaairquality.pythonanywhere.com/input_sensor_data/?d=1"; // this is the url for the first sensor and the d=1
+        // u +="&d=";
+        // u +=1;
          u +="&c=";
          u +=map (map(real_time_average_co, 0.1, 1023.1, 10.1, 500.1), 10.0,500.0, 0.0,50.4); 
-         u +="&o3=";
-         u +=0;
-         u +="&n=";
-         u +=0;
+        // u +="&o3=";
+        // u +=0;
+        // u +="&n=";
+        // u +=0;
          u +="&p2=";
          u +=real_time_average_pm25;
          u +="&p1=";
          u +=real_time_average_pm10;
-         u +="&s=";
-         u +=0;
+         //u +="&s=";
+         //u +=0;
          u +="&lo=";
          u +=dtostrf(longitude, 7,5, outstr );
          u +="&l=";
          u +=dtostrf(latitude, 7,5, outstr );
          u +="&h=";
-         u +=dtostrf(altitude, 7,5, outstr );
-         u +="&t=";
-         u +=0;
-         u +="&b=";
-         u +=1; //read analog of powerbank
+         u +=dtostrf(altitude, 7,2, outstr );
+        // u +="&t=";
+        // u +=0;
+         //u +="&b=";
+         //u +=1; //read analog of powerbank
          u +="&tm=";
          u +=real_time_average_tem;
          u +="&hu=";
          u +=real_time_average_hum;
-         u +="&dn=";
-         u +=dn;
-         u +="&di=";
-         u +=900; // our data interval is 900 secs. 
-        */
-        //Sample test to see if data will go through.
-        String url = "api.airquality.codeforafrica.org/v1/push-sensor-data/?NODE=CFA001&PIN=2";
-        String data = "{\”sampling_rate\”:2,\”timestamp\”:\”2017-6-6 2:7:1\”,\”sensordatavalues\”:[{\”value\”:\”9\”,\”value_type\”:\”P1\”},{\”value\”:\”1\”,\”value_type\”:\”P2\”},{\”value\”:\”4\”,\”value_type\”:\”samples\”},{\”value\”:\”1\”,\”value_type\”:\”min_micro\”},{\”value\”:\”2\”,\”value_type\”:\”max_micro\”}]}";
+        // u +="&dn=";
+        // u +=dn;
+        // u +="&di=";
+         //u +=900; // our data interval is 900 secs.
+         u +="&d1=";
+         u +=d1;
+         u +="&d2=";
+         u +=d2;
+         u +="&r1=";
+         u +=dtostrf(r1, 5,2, outstr );
+         u +="&r2=";
+         u +=dtostrf(r2, 5,2, outstr );
+         
+        
         /**********************BETWEEN HERE SEND DATA TO THE SERVER/DATABASE***********************/
             //  Serial.println(u);
               unsigned long time_started = millis();
@@ -271,50 +287,58 @@ void loop(void) {
                  //first turn on GPRS
                 gprsresult= send_GPS_RS_command_GgOo ('G');
                 if (gprsresult==11){
-                   Serial.println(F("GRsuc"));
+                   ///Serial.println(F("GRsuc"));
                 }
                 else{
-                  Serial.println(F("GRfai")); 
+                  ///Serial.println(F("GRfai")); 
                 }
               webstatus=5; // let us know the web status
-              webresult = send_data_to_web ('w', url, data);
+              webresult = send_data_to_web ('w', u);
               if (webresult==1){
-                 Serial.println("Web suc");
+                /// Serial.println("Web suc");
               //tunr off
+                // we want to also send data to codefornigeria
+
                 restart_shield();
                 break; // if sucessful what are you waiting for, get outta of here
               }
               else{
-                Serial.println("wb nt suc");
-                Serial.print("stus ");
-                Serial.print(webstatus);
+               /// Serial.println("wb nt suc");
+                ///Serial.print("stus ");
+               /// Serial.print(webstatus);
                 restart_shield();
               }
               //tunr off gprs
               gprsresult= send_GPS_RS_command_GgOo ('g'); 
               if (gprsresult==21){
-                 Serial.println(F("GR suc"));
+                /// Serial.println(F("GR suc"));
               }
               else{
-                Serial.println(F("GR fai"));
+               /// Serial.println(F("GR fai"));
               }
               delay(5000);
               } while ((millis() - time_started)< 240000); // try to send the data between a period of 3.5 minutes, if not sucessful, then save data to be sent later.
-                
+             // g="codefornigeria";
+              q++; //increase
+        } while (q <=1); // Send data twice, first to codeforafrica, next to codefornigeria  
         /*******************************************************************************************/
         real_time_average_pm10=1;
         real_time_average_pm25=1;
         real_time_average_co=1;
         real_time_average_tem=1;
-        real_time_average_hum=1;                                           
+        real_time_average_hum=1;
+        d1=1; //lowpulseoccupanccyPM10
+        d2=1; //lowpulseoccupanccyPM2.5
+        r1=1; //RatioPM10
+        r2=1; //RatioPM2.5
         
         // in between a period of 4 minutes, the GPRS sheild tries to send the data, if after unscessful attempt in 4 mins, its over, data is saved.
         
         }while(0);
         
-        Serial.print("n   ");
-        Serial.print(dn);
-        Serial.print(" pdat");
+      ///  Serial.print("n   ");
+      ///  Serial.print(dn);
+      ///  Serial.print(" pdat");
      }
 }
   
@@ -339,12 +363,12 @@ uint8_t get_temp_hum_data( uint8_t next_state, uint8_t captured_num){
 // READ DATA
 delay(2000);// let dht11 stabilise
 for (int i=1; i<6; i++) {
-tm = dht.readHumidity();
-hu = dht.readTemperature();
+hu = dht.readHumidity();
+tm = dht.readTemperature();
 //int chk = DHT.read11(DHT11_PIN);
 if (!(isnan(hu) || isnan(tm))) // humidity does not read well, but temperature reads, well, if everything is ok then read tem and hum
 {
-Serial.println("gvl"); 
+///Serial.println("gvl"); 
 //Serial.println(DHT.humidity); 
 //Serial.println(DHT.temperature); 
 //Serial.println(" "); 
@@ -364,9 +388,9 @@ Serial.println("gvl");
 else{ //store the value, yet read again.
 //hu = DHT.humidity; // store humididty ready for web
 //tm = DHT.temperature; //store temperature ready for web
-Serial.println("Nv"); 
-Serial.println(i); 
-Serial.println("h: ");
+///Serial.println("Nv"); 
+///Serial.println(i); 
+///Serial.println("h: ");
 //*/
 delay (2000); // wait a while. and read again
 //  real_time_average_tem = ((real_time_average_tem * (captured_num -1))+ DHT.temperature)/captured_num;
@@ -384,15 +408,15 @@ if (i==5){
 //PM 2.5 data
 uint8_t get_PM25_data ( uint8_t next_state, uint8_t captured_num) {
 //get PM 2.5 density of particles over 2.5 μm.
-  concentrationPM25=(long)getPM(DUST_SENSOR_DIGITAL_PIN_PM25);
-  Serial.print("P2");
-  Serial.print(concentrationPM25);
-  Serial.println(" p/cf");
+  concentrationPM25=(long)getPM(DUST_SENSOR_DIGITAL_PIN_PM25, captured_num);
+ /// Serial.print("P2");
+ /// Serial.print(concentrationPM25);
+ /// Serial.println(" p/cf");
   concentrationPM25_ugm3 = conversion25(concentrationPM25);
-  Serial.print("P2: ");
-  Serial.print(concentrationPM25_ugm3);
-  Serial.println(" ug/m3");
-  Serial.print("\n");   
+ /// Serial.print("P2: ");
+ /// Serial.print(concentrationPM25_ugm3);
+ /// Serial.println(" ug/m3");
+ /// Serial.print("\n");   
   //ppmv=mg/m3 * (0.08205*Tmp)/Molecular_mass
   //0.08205   = Universal gas constant in atm·m3/(kmol·K)
   //ppmvPM25=((concentrationPM25_ugm3) * ((0.08205*temp)/28.97));
@@ -415,15 +439,15 @@ uint8_t get_PM25_data ( uint8_t next_state, uint8_t captured_num) {
 //PM 10 data
 uint8_t get_PM10_data ( uint8_t next_state, uint8_t captured_num){
     //get PM 1.0 - density of particles over 1 μm.
-  concentrationPM10=getPM(DUST_SENSOR_DIGITAL_PIN_PM10);
-  Serial.print("P1: ");
-  Serial.print(concentrationPM10);
-  Serial.println(" p/f");
+  concentrationPM10=getPM(DUST_SENSOR_DIGITAL_PIN_PM10, captured_num);
+  ///Serial.print("P1: ");
+  ///Serial.print(concentrationPM10);
+  ///Serial.println(" p/f");
   concentrationPM10_ugm3 = conversion10(concentrationPM10);
-  Serial.print("P1 ");
-  Serial.print(concentrationPM10_ugm3);
-  Serial.println(" ug/m3");
-  Serial.print("\n");
+  ///Serial.print("P1 ");
+ /// Serial.print(concentrationPM10_ugm3);
+  ///Serial.println(" ug/m3");
+  ///Serial.print("\n");
   //ppmv=mg/m3 * (0.08205*Tmp)/Molecular_mass
   //0.08205   = Universal gas constant in atm·m3/(kmol·K)
   //ppmvPM10=((concentrationPM10_ugm3) * ((0.08205*temp)/28.97));
@@ -473,7 +497,7 @@ float conversion10(long concentrationPM10) {
 }
 
 
-long getPM(int DUST_SENSOR_DIGITAL_PIN) {
+long getPM(int DUST_SENSOR_DIGITAL_PIN, uint8_t captured_num) {
 
   starttime = millis();
 
@@ -487,15 +511,27 @@ long getPM(int DUST_SENSOR_DIGITAL_PIN) {
     {
     ratio = (lowpulseoccupancy-endtime+starttime)/(sampletime_ms*10.0);  // Integer percentage 0=>100
     concentration = 1.1*pow(ratio,3)-3.8*pow(ratio,2)+520*ratio+0.62; // using spec sheet curve
-    Serial.print("lpo:");
-    Serial.print(lowpulseoccupancy);
-    Serial.print("\n");
-    Serial.print("rat:");
-    Serial.print(ratio);
-    Serial.print("\n");
+   /// Serial.print("lpo:");
+  ///  Serial.print(lowpulseoccupancy);
+   /// Serial.print("\n");
+   /// Serial.print("rat:");
+   /// Serial.print(ratio);
+   /// Serial.print("\n");
     //Serial.print("PPDNS42:");
     //Serial.println(concentration);
     //Serial.print("\n");
+    
+    // get the low pulse occupancy and ratio and assign to global variable.
+    if (DUST_SENSOR_DIGITAL_PIN == 8) // if Pm10
+    {
+      d1= ((d1 * (captured_num -1))+ lowpulseoccupancy)/captured_num;
+      r1=((r1 * (captured_num -1))+ ratio)/captured_num;
+    }
+    else if (DUST_SENSOR_DIGITAL_PIN == 9) // if pm9
+    {
+     d2= ((d2 * (captured_num -1))+ lowpulseoccupancy)/captured_num;
+      r2=((r2 * (captured_num -1))+ ratio)/captured_num;
+    }
     
     lowpulseoccupancy = 0;
     return(concentration);    
@@ -514,18 +550,18 @@ void restart_shield (){
   while (! Serial);
 
   Serial.begin(115200); //used basicllay to interact with fona from serial so you can take off.
-  Serial.println(F("initilzng"));
+///  Serial.println(F("initilzng"));
 //  Serial.println(F("In)"));
 
   fonaSerial->begin(4800);
   if (! fona.begin(*fonaSerial)) {
-    Serial.println(F("FNF")); //08122259554
+  ///  Serial.println(F("FNF")); //08122259554
     while(1);
   }
-  Serial.println(F("FONA OK"));
+ // Serial.println(F("FONA OK"));
   // Try to enable GPRS
 
-Serial.println("ety..");
+///Serial.println("ety..");
 delay(10000);
 
 }
@@ -533,7 +569,7 @@ delay(10000);
 //fundtion to turn on gprs onand off.
 int send_GPS_RS_command_GgOo (char command) {
   delay(5000);
-  Serial.print(F("FONA> "));
+///  Serial.print(F("FONA> "));
     flushSerial();
     if (fona.available()) {
       Serial.write(fona.read());
@@ -543,7 +579,7 @@ int send_GPS_RS_command_GgOo (char command) {
     case 'G': {
         // turn GPRS on
         if (!fona.enableGPRS(true)){
-          Serial.println(F("Fton"));
+          ///Serial.println(F("Fton"));
           result=1;
         }
         else{
@@ -554,7 +590,7 @@ int send_GPS_RS_command_GgOo (char command) {
       case 'g': {
         // turn GPRS on
         if (!fona.enableGPRS(false)){
-          Serial.println(F("Ftoof"));
+          ///Serial.println(F("Ftoof"));
            result=2;
         }
         else{
@@ -576,9 +612,9 @@ int send_GPS_RS_command_GgOo (char command) {
 }
 
 // function to send data to web.
-int send_data_to_web (char command, String url, String data) {
+int send_data_to_web (char command, String url) {
      delay(5000);
-    Serial.print(F("FONA> "));
+    ///Serial.print(F("FONA> "));
     flushSerial();
     if (fona.available()) {
       Serial.write(fona.read());
@@ -586,46 +622,47 @@ int send_data_to_web (char command, String url, String data) {
     int failed =1;
     switch (command){
     
-    case 'W': {
-        // Post data to website
-        uint16_t statuscode;
-        int16_t length;
-        char url[100];
-        char data[500];
+    case 'w': {
+    uint16_t statuscode;
+    int16_t length;
+    int16_t length2;
+    //char h [400]={' '}; //hold Httpresponse, i dont expect to have more than 500 for this application.
+   // String HttpResponseData="";
+    char buf[url.length()+1]; //Increase this length to accomodate for large or long dataset.
+    url.toCharArray(buf, url.length()+1); // maximum length of GET request is 2000
+   // Serial.print("Request: ");
+ ///   Serial.println(buf);
 
-        flushSerial();
-        Serial.println(F("p"));
-    //    Serial.println(F("U"));
-    //    Serial.print(F("http://")); readline(url, 99);
-        Serial.println(url);
-        Serial.println(F("u"));
-        readline(data, 499);
-        Serial.println(data);
-
-        Serial.println(F("**"));
-        if (!fona.HTTP_POST_start(url, F("application/json"), (uint8_t *) data, strlen(data), &statuscode, (uint16_t *)&length)) {
-        failed = 0;
-          break;
-        }
-        while (length > 0) {
-          while (fona.available()) {
-            char c = fona.read();
-
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
-            loop_until_bit_is_set(UCSR0A, UDRE0); /* Wait until data register empty. */
-            UDR0 = c;
-#else
-            Serial.write(c);
-#endif
-
-            length--;
-            if (! length) break;
-          }
-        }
-        Serial.println(F("\n****"));
-        fona.HTTP_POST_end();
-        break;
-      }
+    if (!fona.HTTP_GET_start(buf, &statuscode, (uint16_t *)&length)) {
+     failed =0;
+      //  statuscode, length =0;
+     //  If it fails, Wait a certain time, reintialize device, turn off gprs if on, then try again.
+    }
+    length2 = length;
+    while (length > 0) {
+    while (fona.available()) {
+    char c = fona.read();
+     // Serial.write is too slow, we'll write directly to Serial register!
+      #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
+        loop_until_bit_is_set(UCSR0A, UDRE0); /* Wait until data register empty. */
+        UDR0 = c;
+      #else
+        Serial.write(c);
+      #endif
+//      length--;
+   //   h[length2-length]=c ;// load the response data into a string where it can be processed
+      length--;
+      
+    }
+  }
+  if ( failed == 0){ // if failed occured, and showed error 603, due to network, then relax for Fona GPRS to get it self together again. because when it is on, it actually does not turn off, i dont know why
+ /// Serial.print ("I fail ");
+  }
+  // if 603 occurs, it does this fona.HTTP_GET_END command immdeiately, which makes things work wrong, there should be a delay between the HTTP get_start command and HTTP_get_end command, when things fail.
+  webstatus = statuscode; // let us know the stauts code.
+  delay(8000);
+  fona.HTTP_GET_end();
+    }
 
     }
   flushSerial();
@@ -648,42 +685,5 @@ if (!fona.enableGPS(false)){
 delay(5000);
   return 1;
 }
-uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout) {
-  uint16_t buffidx = 0;
-  boolean timeoutvalid = true;
-  if (timeout == 0) timeoutvalid = false;
 
-  while (true) {
-    if (buffidx > maxbuff) {
-      //Serial.println(F("SPACE"));
-      break;
-    }
-
-    while (Serial.available()) {
-      char c =  Serial.read();
-
-      //Serial.print(c, HEX); Serial.print("#"); Serial.println(c);
-
-      if (c == '\r') continue;
-      if (c == 0xA) {
-        if (buffidx == 0)   // the first 0x0A is ignored
-          continue;
-
-        timeout = 0;         // the second 0x0A is the end of the line
-        timeoutvalid = true;
-        break;
-      }
-      buff[buffidx] = c;
-      buffidx++;
-    }
-
-    if (timeoutvalid && timeout == 0) {
-      //Serial.println(F("TIMEOUT"));
-      break;
-    }
-    delay(1);
-  }
-  buff[buffidx] = 0;  // null term
-  return buffidx;
-}
 
