@@ -475,7 +475,7 @@ return next_state;
 
 
 
-// function used in calculating PM2.5 and PM10 data.
+// function used in converting PM2.5 and PM10 concentration data to µg/m3 
 float conversion25(long concentrationPM25) {
   double pi = 3.14159;
   double density = 1.65 * pow (10, 12);
@@ -489,7 +489,7 @@ float conversion25(long concentrationPM25) {
 float conversion10(long concentrationPM10) {
   double pi = 3.14159;
   double density = 1.65 * pow (10, 12);
-  double r10 = 0.44 * pow (10, -6);
+  double r10 = 2.6 * pow (10, -6);
   double vol10 = (4/3) * pi * pow (r10, 3);
   double mass10 = density * vol10;
   double K = 3531.5;
