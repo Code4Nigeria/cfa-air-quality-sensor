@@ -170,7 +170,7 @@ void loop(void) {
         dn = i; //data no, let us identify which data is coming in.
         
         start_cap_time_ms =millis(); //this is the time that keep watch at 15minutes interval for sending data.
-        fona.enableGPS(true); //Turn on gps, so that you can get a fix after 2minutes before requesting lonti and latituge. 
+        fona.enableGPS(true); //Turn on gps, so that you can get a fix after 2minutes before requesting lonti and latituge.
         do { //Between here, capture as much value as you can and find the average.
                 //start state at 1. // start reading temp and hummidity data.
         switch (next_state){
@@ -220,7 +220,7 @@ void loop(void) {
                  Serial.print("no of data captured is "); 
                  Serial.println(captured_number);*/
         //get GPS, latitutude, longitude, height, 
-        static char outstr[10]; //hold the str that allow us to render longitude data properly. 
+        static char outstr[10]; //hold the str that allow us to render longitude data properly.
         if (!get_long_lat_alt ()){ // if the gps fails // get the last correct gps from eeprom.
            /// Serial.println("gpsf");
              }
@@ -236,7 +236,7 @@ void loop(void) {
           //compose string.
         do // allow us to use the single command to update both codeforafrica and codefornigeria
         {
-          String u="ng.api.airquality."+ g +".org/?NODE=CFA002"; // this is the url for the first sensor and the d=1
+          String u="ng.api.airquality."+ g +".org/?NODE=CFA003"; // this is the url for the first sensor and the d=1
          //String u= "cfaairquality.pythonanywhere.com/input_sensor_data/?d=1"; // this is the url for the first sensor and the d=1
         // u +="&d=";
         // u +=1;
@@ -410,9 +410,9 @@ uint8_t get_PM25_data ( uint8_t next_state, uint8_t captured_num) {
 //get PM 2.5 density of particles over 2.5 μm.
   concentrationPM25=(long)getPM(DUST_SENSOR_DIGITAL_PIN_PM25, captured_num);
  /// Serial.print("P2");
- // Serial.println(concentrationPM25);
+ /// Serial.print(concentrationPM25);
  /// Serial.println(" p/cf");
-  concentrationPM25_ugm3 = conversion25(concentrationPM25); //conversion10(concentrationPM10); //(USING CHEGE STYLE) SEND CONCpm10 AND DONT DO CONVERSION.
+  concentrationPM25_ugm3 = conversion25(concentrationPM25);
  /// Serial.print("P2: ");
  /// Serial.print(concentrationPM25_ugm3);
  /// Serial.println(" ug/m3");
@@ -421,8 +421,8 @@ uint8_t get_PM25_data ( uint8_t next_state, uint8_t captured_num) {
   //0.08205   = Universal gas constant in atm·m3/(kmol·K)
   //ppmvPM25=((concentrationPM25_ugm3) * ((0.08205*temp)/28.97));
  
-  if (/*concentrationPM25_ugm3*/concentrationPM25>0) {
-       p2 = concentrationPM25; //concentrationPM25_ugm3; //assging to p2 webholder for PM10 //(USING CHEGE STYLE) SEND CONCpm10 AND DONT DO CONVERSION.
+  if (concentrationPM25>0) {
+       p2 = concentrationPM25; //assging to p2 webholder for PM10
         lastDUSTPM25= p2 ;
   }
   else{
@@ -441,9 +441,9 @@ uint8_t get_PM10_data ( uint8_t next_state, uint8_t captured_num){
     //get PM 1.0 - density of particles over 1 μm.
   concentrationPM10=getPM(DUST_SENSOR_DIGITAL_PIN_PM10, captured_num);
   ///Serial.print("P1: ");
-  //Serial.println(concentrationPM10);
+  ///Serial.print(concentrationPM10);
   ///Serial.println(" p/f");
-  concentrationPM10_ugm3 = conversion10(concentrationPM10); 
+  concentrationPM10_ugm3 = conversion10(concentrationPM10);
   ///Serial.print("P1 ");
  /// Serial.print(concentrationPM10_ugm3);
   ///Serial.println(" ug/m3");
@@ -452,8 +452,8 @@ uint8_t get_PM10_data ( uint8_t next_state, uint8_t captured_num){
   //0.08205   = Universal gas constant in atm·m3/(kmol·K)
   //ppmvPM10=((concentrationPM10_ugm3) * ((0.08205*temp)/28.97));
   
-  if (/*concentrationPM10_ugm3*/concentrationPM10>0) {
-       p1 = concentrationPM10;//concentrationPM10_ugm3; //assging to p2 webholder for PM10 //(USING CHEGE STYLE) SEND CONCpm10 AND DONT DO CONVERSION.
+  if (concentrationPM10>0) {
+       p1 = concentrationPM10; //assging to p2 webholder for PM10
         lastDUSTPM10= p1 ;
   }
   else{
@@ -489,7 +489,7 @@ float conversion25(long concentrationPM25) {
 float conversion10(long concentrationPM10) {
   double pi = 3.14159;
   double density = 1.65 * pow (10, 12);
-  double r10 = 0.44 * pow (10, -6);
+  double r10 = 2.6 * pow (10, -6);
   double vol10 = (4/3) * pi * pow (r10, 3);
   double mass10 = density * vol10;
   double K = 3531.5;
@@ -509,7 +509,7 @@ long getPM(int DUST_SENSOR_DIGITAL_PIN, uint8_t captured_num) {
     
     if ((endtime-starttime) > sampletime_ms)
     {
-    ratio = (lowpulseoccupancy)/(sampletime_ms*10.0);//(lowpulseoccupancy-endtime+starttime)/(sampletime_ms*10.0);  // Integer percentage 0=>100
+    ratio = (lowpulseoccupancy-endtime+starttime)/(sampletime_ms*10.0);  // Integer percentage 0=>100(lowpulseoccupancy-endtime+starttime)/(sampletime_ms*10.0);  // Integer percentage 0=>100
     concentration = 1.1*pow(ratio,3)-3.8*pow(ratio,2)+520*ratio+0.62; // using spec sheet curve
    /// Serial.print("lpo:");
   ///  Serial.print(lowpulseoccupancy);
@@ -676,17 +676,13 @@ uint8_t get_long_lat_alt (){
  }
 delay(8000);*/
 delay(5000);
-
  boolean gps_success = fona.getGPS(&latitude, &longitude, &altitude);
  if (!gps_success) {
    return 0;
    }
 if (!fona.enableGPS(false)){
 }
-delay(5000);/* delay(12000);
-fona.enableGPS(false);
-  return 0;*/
+delay(5000);
   return 1;
 }
-
 
