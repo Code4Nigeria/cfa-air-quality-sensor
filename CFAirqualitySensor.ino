@@ -63,7 +63,7 @@ int next_state =34 ; // keep the state of things
 //constant Web data for setting
 //String sn ="r";//sensor name
 //String sc = "";//sensor city
-int si= 1; //sensor installed.
+//int si= 1; //sensor installed.
 //String se=""; //in care of
 //String so= "";//organisation in care of
 //String sp= "";//phone no
@@ -91,7 +91,7 @@ float p1 = 0;// particulate > 2.5 matter data
 //float h= 0;// height data
 //float t= 0; // sensor time UTC.
 int b = 0;// battery status
-float tm = 0;// temperature data
+float tm = 0;// temperature data //
 float hu= 0; //hummidity data
 float di= 900; //data interval
 int d1=0; //low pulseoccupancyPM10
@@ -102,24 +102,34 @@ float r2=0;//ratioPM2.5
 //PM data and variables
 #define DUST_SENSOR_DIGITAL_PIN_PM10  8
 #define DUST_SENSOR_DIGITAL_PIN_PM25  9
-unsigned long SLEEP_TIME = 30*1000; // Sleep time between reads (in milliseconds)
+boolean val_PM10 =  HIGH;
+boolean val_PM25 =  HIGH;
+boolean trig_DUST_SENSOR_DIGITAL_PIN_PM10 =  false;
+boolean trig_DUST_SENSOR_DIGITAL_PIN_PM25 =  false;
+unsigned long trigOnP1;
+unsigned long trigOnP2;
+//unsigned long SLEEP_TIME = 30*1000; // Sleep time between reads (in milliseconds)
 int val = 0;           // variable to store the value coming from the sensor
 float valDUSTPM25 =0.0;
 float lastDUSTPM25 =0.0;
 float valDUSTPM10 =0.0;
 float lastDUSTPM10 =0.0;
-unsigned long duration;
+unsigned long durationP1;
+unsigned long durationP2;
 unsigned long starttime;
 unsigned long endtime;
 unsigned long sampletime_ms = 30000;
-unsigned long lowpulseoccupancy = 0;
-float ratio = 0;
-long concentrationPM25 = 0;
-long concentrationPM10 = 0;
-float concentration = 0;
+unsigned long lowpulseoccupancyP1 = 0;
+unsigned long lowpulseoccupancyP2 = 0;
+float ratio1 = 0;
+float ratio2 = 0;
+float concentrationPM25 = 0;
+float concentrationPM10 = 0;
+float concentration1 = 0;
+float concentration2 = 0;
 float concentrationPM25_ugm3;
 float concentrationPM10_ugm3;
-int temp=273.5; //external temperature, if you can replace this with a DHT11 or better 
+//int temp=273.5; //external temperature, if you can replace this with a DHT11 or better 
 //float ppmvPM25;
 //float ppmvPM10;
 
@@ -178,11 +188,11 @@ void loop(void) {
                 //capture temperature data and humidity data
           case 1: next_state = get_temp_hum_data (next_state, captured_number); // Check for echicle entrace
           break;
-          case 2: next_state = get_PM25_data (next_state, captured_number); // Check for echicle entrace
+          case 2: next_state = get_PM_data (next_state, captured_number); // Check for echicle entrace
           break;
-          case 3: next_state = get_PM10_data (next_state, captured_number); // Check for echicle entrace
-          break;
-          case 4: next_state = get_co_data (next_state, captured_number); // Check for echicle entrace
+//          case 3: next_state = get_PM10_data (next_state, captured_number); // Check for echicle entrace
+  //        break;
+          case 3: next_state = get_co_data (next_state, captured_number); // Check for echicle entrace
           break;
           case 41:  // case 41 is the reporting case where captured number is being updated. accurately. // only if all data has been gotten.
           if (next_state == 41){
@@ -406,13 +416,17 @@ if (i==5){
 }
 
 //PM 2.5 data
-uint8_t get_PM25_data ( uint8_t next_state, uint8_t captured_num) {
+uint8_t get_PM_data ( uint8_t next_state, uint8_t captured_num) {
 //get PM 2.5 density of particles over 2.5 μm.
-  concentrationPM25=(long)getPM(DUST_SENSOR_DIGITAL_PIN_PM25, captured_num);
+if (getPM(DUST_SENSOR_DIGITAL_PIN_PM25, captured_num))
+{
+    concentrationPM10= concentration1;
+    concentrationPM25= concentration2;
+}
  /// Serial.print("P2");
  /// Serial.print(concentrationPM25);
  /// Serial.println(" p/cf");
-  concentrationPM25_ugm3 = conversion25(concentrationPM25);
+ // concentrationPM25_ugm3 = conversion25(concentrationPM25);
  /// Serial.print("P2: ");
  /// Serial.print(concentrationPM25_ugm3);
  /// Serial.println(" ug/m3");
@@ -420,23 +434,33 @@ uint8_t get_PM25_data ( uint8_t next_state, uint8_t captured_num) {
   //ppmv=mg/m3 * (0.08205*Tmp)/Molecular_mass
   //0.08205   = Universal gas constant in atm·m3/(kmol·K)
   //ppmvPM25=((concentrationPM25_ugm3) * ((0.08205*temp)/28.97));
+ p2 = concentrationPM25; //assging to p2 webholder for PM10
+ p1 = concentrationPM10; //assging to p2 webholder for PM10
  
-  if (concentrationPM25_ugm3>0) {
-       p2 = concentrationPM25_ugm3; //assging to p2 webholder for PM10
-        lastDUSTPM25= p2 ;
+/*  if (concentrationPM25>0) {
+       p2 = concentrationPM25; //assging to p2 webholder for PM10
+    //    lastDUSTPM25= p2 ;
   }
   else{
     p2 = float (lastDUSTPM25);
   }
+  if (concentrationPM10>0) {
+       p1 = concentrationPM10; //assging to p2 webholder for PM10
+        lastDUSTPM10= p1 ;
+  }
+  else{
+    p1 = float (lastDUSTPM10);
+  }*/
   //get realtime average data for both PM2.5 pollutant.
   real_time_average_pm25 = ((real_time_average_pm25 * (captured_num -1))+ p2)/captured_num;
+  real_time_average_pm10 = ((real_time_average_pm10 * (captured_num -1))+ p1)/captured_num;
 //....................
   next_state = 3;
   return next_state;
 
 }
 
-//PM 10 data
+/* //PM 10 data 
 uint8_t get_PM10_data ( uint8_t next_state, uint8_t captured_num){
     //get PM 1.0 - density of particles over 1 μm.
   concentrationPM10=getPM(DUST_SENSOR_DIGITAL_PIN_PM10, captured_num);
@@ -452,8 +476,8 @@ uint8_t get_PM10_data ( uint8_t next_state, uint8_t captured_num){
   //0.08205   = Universal gas constant in atm·m3/(kmol·K)
   //ppmvPM10=((concentrationPM10_ugm3) * ((0.08205*temp)/28.97));
   
-  if (concentrationPM10_ugm3>0) {
-       p1 = concentrationPM10_ugm3; //assging to p2 webholder for PM10
+  if (concentrationPM10>0) {
+       p1 = concentrationPM10; //assging to p2 webholder for PM10
         lastDUSTPM10= p1 ;
   }
   else{
@@ -465,7 +489,7 @@ uint8_t get_PM10_data ( uint8_t next_state, uint8_t captured_num){
   next_state = 4;
   return next_state;
 
-}
+}*/
 uint8_t get_co_data ( uint8_t next_state, uint8_t captured_num){
 c=analogRead(COPIN);//Read Gas value from analog 0
 real_time_average_co = ((real_time_average_co * (captured_num -1))+ c)/captured_num;
@@ -479,7 +503,7 @@ return next_state;
 float conversion25(long concentrationPM25) {
   double pi = 3.14159;
   double density = 1.65 * pow (10, 12);
-  double r25 = 0.8 * pow (10, -6);
+  double r25 = 0.44 * pow (10, -6);
   double vol25 = (4/3) * pi * pow (r25, 3);
   double mass25 = density * vol25;
   double K = 3531.5;
@@ -489,7 +513,7 @@ float conversion25(long concentrationPM25) {
 float conversion10(long concentrationPM10) {
   double pi = 3.14159;
   double density = 1.65 * pow (10, 12);
-  double r10 = 0.8 * pow (10, -6);
+  double r10 = 2.6 * pow (10, -6);
   double vol10 = (4/3) * pi * pow (r10, 3);
   double mass10 = density * vol10;
   double K = 3531.5;
@@ -502,15 +526,40 @@ long getPM(int DUST_SENSOR_DIGITAL_PIN, uint8_t captured_num) {
   starttime = millis();
 
   while (1) {
-  
-    duration = pulseIn(DUST_SENSOR_DIGITAL_PIN, LOW);
-    lowpulseoccupancy += duration;
-    endtime = millis();
     
-    if ((endtime-starttime) > sampletime_ms)
+    val_PM10 =digitalRead(DUST_SENSOR_DIGITAL_PIN_PM10);
+    val_PM25 =digitalRead(DUST_SENSOR_DIGITAL_PIN_PM25);
+    
+    if(val_PM10 == LOW && trig_DUST_SENSOR_DIGITAL_PIN_PM10 == false){
+    trig_DUST_SENSOR_DIGITAL_PIN_PM10 = true;
+    trigOnP1 = micros();
+    }
+    
+    if(val_PM10 == HIGH && trig_DUST_SENSOR_DIGITAL_PIN_PM10 == true){
+    durationP1 = micros() - trigOnP1;
+    lowpulseoccupancyP1 = lowpulseoccupancyP1 + durationP1;
+    trig_DUST_SENSOR_DIGITAL_PIN_PM10 = false;
+    }
+    
+    if(val_PM25 == LOW && trig_DUST_SENSOR_DIGITAL_PIN_PM25 == false){
+    trig_DUST_SENSOR_DIGITAL_PIN_PM25 = true;
+    trigOnP2 = micros();
+    }
+    
+    if(val_PM25 == HIGH && trig_DUST_SENSOR_DIGITAL_PIN_PM10 == true){
+    durationP2 = micros() - trigOnP2;
+    lowpulseoccupancyP2 = lowpulseoccupancyP2 + durationP2;
+    trig_DUST_SENSOR_DIGITAL_PIN_PM25 = false;
+    }
+     
+      
+    if ((millis()-starttime) > sampletime_ms)
     {
-    ratio = (lowpulseoccupancy-endtime+starttime)/(sampletime_ms*10.0);  // Integer percentage 0=>100
-    concentration = 1.1*pow(ratio,3)-3.8*pow(ratio,2)+520*ratio+0.62; // using spec sheet curve
+    ratio1 = (lowpulseoccupancyP1)/(sampletime_ms*10.0);  // Integer percentage 0=>100(lowpulseoccupancy-endtime+starttime)/(sampletime_ms*10.0);  // Integer percentage 0=>100
+    concentration1 = 1.1*pow(ratio1,3)-3.8*pow(ratio1,2)+520*ratio1+0.62; // using spec sheet curve
+    
+    ratio2 = (lowpulseoccupancyP2)/(sampletime_ms*10.0);  // Integer percentage 0=>100(lowpulseoccupancy-endtime+starttime)/(sampletime_ms*10.0);  // Integer percentage 0=>100
+    concentration2 = 1.1*pow(ratio2,3)-3.8*pow(ratio2,2)+520*ratio2+0.62; // using spec sheet curve
    /// Serial.print("lpo:");
   ///  Serial.print(lowpulseoccupancy);
    /// Serial.print("\n");
@@ -522,19 +571,19 @@ long getPM(int DUST_SENSOR_DIGITAL_PIN, uint8_t captured_num) {
     //Serial.print("\n");
     
     // get the low pulse occupancy and ratio and assign to global variable.
-    if (DUST_SENSOR_DIGITAL_PIN == 8) // if Pm10
+    if (DUST_SENSOR_DIGITAL_PIN == 8 || DUST_SENSOR_DIGITAL_PIN == 9) // if Pm10
     {
-      d1= ((d1 * (captured_num -1))+ lowpulseoccupancy)/captured_num;
-      r1=((r1 * (captured_num -1))+ ratio)/captured_num;
-    }
-    else if (DUST_SENSOR_DIGITAL_PIN == 9) // if pm9
-    {
-     d2= ((d2 * (captured_num -1))+ lowpulseoccupancy)/captured_num;
-      r2=((r2 * (captured_num -1))+ ratio)/captured_num;
+      d1= ((d1 * (captured_num -1))+ lowpulseoccupancyP1)/captured_num;
+      r1=((r1 * (captured_num -1))+ ratio1)/captured_num;
+    
+      d2= ((d2 * (captured_num -1))+ lowpulseoccupancyP2)/captured_num;
+      r2=((r2 * (captured_num -1))+ ratio2)/captured_num;
     }
     
-    lowpulseoccupancy = 0;
-    return(concentration);    
+    lowpulseoccupancyP1 = 0;
+    lowpulseoccupancyP2 = 0;
+    
+    return(1);    
     }
   }  
 }
@@ -684,4 +733,5 @@ if (!fona.enableGPS(false)){
 }
 delay(5000);
   return 1;
-}
+}//
+
