@@ -421,8 +421,8 @@ uint8_t get_PM25_data ( uint8_t next_state, uint8_t captured_num) {
   //0.08205   = Universal gas constant in atm·m3/(kmol·K)
   //ppmvPM25=((concentrationPM25_ugm3) * ((0.08205*temp)/28.97));
  
-  if (concentrationPM25>0) {
-       p2 = concentrationPM25; //assging to p2 webholder for PM10
+  if (concentrationPM25_ugm3>0) {
+       p2 = concentrationPM25_ugm3; //assging to p2 webholder for PM10
         lastDUSTPM25= p2 ;
   }
   else{
@@ -452,8 +452,8 @@ uint8_t get_PM10_data ( uint8_t next_state, uint8_t captured_num){
   //0.08205   = Universal gas constant in atm·m3/(kmol·K)
   //ppmvPM10=((concentrationPM10_ugm3) * ((0.08205*temp)/28.97));
   
-  if (concentrationPM10>0) {
-       p1 = concentrationPM10; //assging to p2 webholder for PM10
+  if (concentrationPM10_ugm3>0) {
+       p1 = concentrationPM10_ugm3; //assging to p2 webholder for PM10
         lastDUSTPM10= p1 ;
   }
   else{
@@ -479,7 +479,7 @@ return next_state;
 float conversion25(long concentrationPM25) {
   double pi = 3.14159;
   double density = 1.65 * pow (10, 12);
-  double r25 = 0.44 * pow (10, -6);
+  double r25 = 0.8 * pow (10, -6);
   double vol25 = (4/3) * pi * pow (r25, 3);
   double mass25 = density * vol25;
   double K = 3531.5;
@@ -489,7 +489,7 @@ float conversion25(long concentrationPM25) {
 float conversion10(long concentrationPM10) {
   double pi = 3.14159;
   double density = 1.65 * pow (10, 12);
-  double r10 = 2.6 * pow (10, -6);
+  double r10 = 0.8 * pow (10, -6);
   double vol10 = (4/3) * pi * pow (r10, 3);
   double mass10 = density * vol10;
   double K = 3531.5;
@@ -509,7 +509,7 @@ long getPM(int DUST_SENSOR_DIGITAL_PIN, uint8_t captured_num) {
     
     if ((endtime-starttime) > sampletime_ms)
     {
-    ratio = (lowpulseoccupancy-endtime+starttime)/(sampletime_ms*10.0);  // Integer percentage 0=>100(lowpulseoccupancy-endtime+starttime)/(sampletime_ms*10.0);  // Integer percentage 0=>100
+    ratio = (lowpulseoccupancy-endtime+starttime)/(sampletime_ms*10.0);  // Integer percentage 0=>100
     concentration = 1.1*pow(ratio,3)-3.8*pow(ratio,2)+520*ratio+0.62; // using spec sheet curve
    /// Serial.print("lpo:");
   ///  Serial.print(lowpulseoccupancy);
@@ -684,5 +684,4 @@ if (!fona.enableGPS(false)){
 }
 delay(5000);
   return 1;
-}//
-
+}
