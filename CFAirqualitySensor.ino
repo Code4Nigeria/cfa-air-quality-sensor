@@ -82,7 +82,8 @@ void setup() {
 }
 
 void loop() {
-  //read pins connected to ppd42ns
+
+ 
   valP1 = digitalRead(8); // PM10 PIN
   valP2 = digitalRead(9); // PM25 PIN
 
@@ -104,12 +105,34 @@ void loop() {
     lowpulseoccupancyP2 = lowpulseoccupancyP2 + durationP2;
     trigP2 = false;
   }
-  // Checking if it is time to sample
+    
+  // Checking if it is time to sample 
   if ((millis()-starttime) > sampletime_ms)
-  {
+  { //Serial.println("start"); 
+   
+  do{ // weed out bad signals leading to abruptly unreasonable high values and take another measurement immediately.
+    if (lowpulseoccupancyP1 > 10000000){
+     // Serial.println("bad");
+      lowpulseoccupancyP1 = 0;
+      lowpulseoccupancyP2 = 0;
+      starttime=millis();
+      break; // take data again.
+    }
+  
+   /* if((lowpulseoccupancyP1 > 10000000))
+    {
+    lowpulseoccupancyP1=lowpulseoccupancyP1/100;
+    lowpulseoccupancyP2=lowpulseoccupancyP2/100;
+    }if ((lowpulseoccupancyP1 > 1000000))
+    {
+    lowpulseoccupancyP1=lowpulseoccupancyP1/100;
+    }*/
+  //  void normalize ();
+    
     ratio1 = lowpulseoccupancyP1/(sampletime_ms*10.0);                 // int percentage 0 to 100
     concentration1 = 1.1*pow(ratio1,3)-3.8*pow(ratio1,2)+520*ratio1+0.62; // spec sheet curve
-    pm10= concentration1 * 0.428994220366712;
+    pm10= concentration1 * 0.004378994220366712; // * 0.428994220366712;
+    // pm10=  conversion10(concentration1);
     
     ++count;
  /*   Serial.println("       ");
@@ -125,13 +148,14 @@ void loop() {
     Serial.print("Concentration of PM10        = ");
     Serial.println(concentration1);
     Serial.print("PM10 ug/m3                   = ");
-    Serial.println(concentration1 * 0.428994220366712); //concentrationPM10 * 0.42899422036671203 
-  */
+    Serial.println(pm10); //concentrationPM10 * 0.42899422036671203 */
+  
     ratio2 = lowpulseoccupancyP2/(sampletime_ms*10.0);
     concentration2 = 1.1*pow(ratio2,3)-3.8*pow(ratio2,2)+520*ratio2+0.62;
-    pm25= concentration2 * 0.0020791672546494077;
+    pm25= concentration2 * 0.020791672546494077; //* 0.0020791672546494077;
+    //pm25=  conversion25(concentration2);
 
-   /* Serial.print("Low pulse occupancy PM25     = ");
+ /*   Serial.print("Low pulse occupancy PM25     = ");
     Serial.println(lowpulseoccupancyP2);
     Serial.print("Ratio of PM25                = ");
     Serial.print(ratio2);
@@ -139,8 +163,9 @@ void loop() {
     Serial.print("Concentration of PM25        = ");
     Serial.println(concentration2);
     Serial.print("PM25 ug/m3                   = ");
-    Serial.println(concentration2 * 0.0020791672546494077); //; concentrationPM2.5 * 0.0020791672546494077`
-  */  // Resetting for next sampling
+    Serial.println(pm25); //; concentrationPM2.5 * 0.0020791672546494077`*/
+    
+    // Resetting for next sampling
     d1= lowpulseoccupancyP1;
     d2 = lowpulseoccupancyP2;
     r1= ratio1;
@@ -213,7 +238,7 @@ void loop() {
         
         /**********************BETWEEN HERE SEND DATA TO THE SERVER/DATABASE***********************/
             //  Serial.println(u);
-              unsigned long time_started = millis();
+             unsigned long time_started = millis();
               do{
                  //first turn on GPRS
                 gprsresult= send_GPS_RS_command_GgOo ('G');
@@ -251,15 +276,16 @@ void loop() {
              // g="codefornigeria";
               q++; //increase
         } while (q <=1); // Send data twice, first to codeforafrica, next to codefornigeria 
-        
-    
+       
+    }while(0);
     lowpulseoccupancyP1 = 0;
     lowpulseoccupancyP2 = 0;
     delay(20000);
     starttime = millis(); // store the start time
-    }
    
-//ok outside loop
+ //ok outside loop
+  
+}
 
 }
 
@@ -324,7 +350,7 @@ void restart_shield (){
 
   fonaSerial->begin(4800);
   if (! fona.begin(*fonaSerial)) {
-  ///  Serial.println(F("FNF")); //08122259554
+  ///  Serial.println(F("FNF")); //
     while(1);
   }
  // Serial.println(F("FONA OK"));
